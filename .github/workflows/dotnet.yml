@@ -13,13 +13,32 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Setup .NET 5 SDK
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.100
-    - name: Restore dependencies
+
+    - name: Add MSBuild to PATH (required to build .NET Framework 3.5 library)
+      uses: microsoft/setup-msbuild@v1
+
+    - name: Restore NuGet packages (using packages.config)
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: nuget restore ${{env.SOLUTION_FILE_PATH}}
+
+    - name: Restore dependencies (using new .NET Project System)
       run: dotnet restore
+
+    # Building with MSBuild is required for .NET Framework 3.5 (net35)
     - name: Build
-      run: dotnet build --no-restore
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      # Add additional options to the MSBuild command line here (like platform or verbosity level).
+      # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} ${{env.SOLUTION_FILE_PATH}}
+
+    # Uncomment when .NET Framework 3.5 (net35) support is removed.
+    #- name: Build
+    #  run: dotnet build --no-restore
+
     - name: Test
       run: dotnet test --no-build --verbosity normal
